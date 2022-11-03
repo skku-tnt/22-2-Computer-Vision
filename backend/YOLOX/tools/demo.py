@@ -25,19 +25,17 @@ def make_parser():
         "demo", default="image", help="demo type, eg. image, video and webcam"
     )
     parser.add_argument("-expn", "--experiment-name", type=str, default=None)
-    parser.add_argument("-n", "--name", default="yolox-nano",type=str,  help="model name")
+    parser.add_argument("-n", "--name", type=str, default=None, help="model name")
 
     parser.add_argument(
-        "--path", default="/app/YOLOX/dog.jpg", help="path to images or video"
+        "--path", default="./assets/dog.jpg", help="path to images or video"
     )
     parser.add_argument("--camid", type=int, default=0, help="webcam demo camera id")
     parser.add_argument(
         "--save_result",
         action="store_true",
-        default= True,
         help="whether to save the inference result of image/video",
     )
-
 
     # exp file
     parser.add_argument(
@@ -143,7 +141,7 @@ class Predictor(object):
         img_info["height"] = height
         img_info["width"] = width
         img_info["raw_img"] = img
-
+    
         ratio = min(self.test_size[0] / img.shape[0], self.test_size[1] / img.shape[1])
         img_info["ratio"] = ratio
 
@@ -182,9 +180,12 @@ class Predictor(object):
         cls = output[:, 6]
         scores = output[:, 4] * output[:, 5]
 
-        vis_res = vis(img, bboxes, scores, cls, cls_conf, self.cls_names)
+        vis_res = vis_no_color(img, bboxes, scores, cls, cls_conf, self.cls_names)
         return vis_res
 
+def vis_no_color(img, boxes, scores, cls_ids, conf=0.5, class_names=None):
+    
+    return img
 
 def image_demo(predictor, vis_folder, path, current_time, save_result):
     if os.path.isdir(path):
@@ -195,6 +196,7 @@ def image_demo(predictor, vis_folder, path, current_time, save_result):
     for image_name in files:
         outputs, img_info = predictor.inference(image_name)
         result_image = predictor.visual(outputs[0], img_info, predictor.confthre)
+        result_image = mosaic_area(result_image, outputs, 0.3)
         if save_result:
             save_folder = os.path.join(
                 vis_folder, time.strftime("%Y_%m_%d_%H_%M_%S", current_time)
@@ -231,6 +233,7 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
         if ret_val:
             outputs, img_info = predictor.inference(frame)
             result_frame = predictor.visual(outputs[0], img_info, predictor.confthre)
+            result_frame = mosaic_area(result_frame, outputs, 0.1)
             if args.save_result:
                 vid_writer.write(result_frame)
             else:
@@ -243,11 +246,53 @@ def imageflow_demo(predictor, vis_folder, current_time, args):
             break
 
 
+def mosaic(src, ratio):
+    """
+    ### 모자이크 기능
+    :param src: 이미지 소스
+    :param ratio: 모자이크 비율
+    :return: 모자이크가 처리된 이미지
+    """
+    small = cv2.resize(src, None, fx=ratio, fy=ratio, interpolation=cv2.INTER_NEAREST)
+    mosaic_img = cv2.resize(small, src.shape[:2][::-1], interpolation=cv2.INTER_NEAREST)
+    return mosaic_img
+
+
+def mosaic_area(src, outputs, ratio):
+    """
+    ### 부분 모자이크 기능
+    :param src: 이미지 소스
+    :param x: 가로축 모자이크 시작 범위
+    :param y: 세로축 모자이크 시작 범위
+    :param width: 모자이크 범위 넓이
+    :param height: 모자이크 범위 폭
+    :param ratio: 모자이크 비율
+    :return: 부분 모자이크가 처리된 이미지
+    """
+    mosaic_area_img = src.copy()
+    output = outputs[0]
+    for i in range(len(output)):
+        
+        mosaic_area_img[int(output[i][1]):int(output[i][3]), int(output[i][0]):int(output[i][2])] = mosaic(mosaic_area_img[int(output[i][1]):int(output[i][3]), int(output[i][0]):int(output[i][2])], ratio)
+    return mosaic_area_img
+
+
+def opencv_img_save(img, save_img_path, save_img_name):
+    """
+    ### 처리 이미지 저장 기능
+    :param img: 저장할 이미지
+    :param save_img_path: 이미지 저장 경로
+    :param save_img_name: 저장할 이미지 명
+    """
+    cv2.imwrite(save_img_path + save_img_name, img)
+
+
+
+
 def main(exp, args):
-    args.exp_name = 'yolox-nano'
     if not args.experiment_name:
         args.experiment_name = exp.exp_name
-    
+
     file_name = os.path.join(exp.output_dir, args.experiment_name)
     os.makedirs(file_name, exist_ok=True)
 
@@ -256,7 +301,10 @@ def main(exp, args):
         vis_folder = os.path.join(file_name, "vis_res")
         os.makedirs(vis_folder, exist_ok=True)
 
-    #logger.info("Args: {}".format(args))
+    if args.trt:
+        args.device = "gpu"
+
+    logger.info("Args: {}".format(args))
 
     if args.conf is not None:
         exp.test_conf = args.conf
@@ -268,24 +316,50 @@ def main(exp, args):
     model = exp.get_model()
     logger.info("Model Summary: {}".format(get_model_info(model, exp.test_size)))
 
+    if args.device == "gpu":
+        model.cuda()
+        if args.fp16:
+            model.half()  # to FP16
     model.eval()
 
-    trt_file = None
-    decoder = None
+    if not args.trt:
+        if args.ckpt is None:
+            ckpt_file = os.path.join(file_name, "best_ckpt.pth")
+        else:
+            ckpt_file = args.ckpt
+        logger.info("loading checkpoint")
+        ckpt = torch.load(ckpt_file, map_location="cpu")
+        # load the model state dict
+        model.load_state_dict(ckpt["model"])
+        logger.info("loaded checkpoint done.")
+
+    if args.fuse:
+        logger.info("\tFusing model...")
+        model = fuse_model(model)
+
+    if args.trt:
+        assert not args.fuse, "TensorRT model is not support model fusing!"
+        trt_file = os.path.join(file_name, "model_trt.pth")
+        assert os.path.exists(
+            trt_file
+        ), "TensorRT model is not found!\n Run python3 tools/trt.py first!"
+        model.head.decode_in_inference = False
+        decoder = model.head.decode_outputs
+        logger.info("Using TensorRT to inference")
+    else:
+        trt_file = None
+        decoder = None
 
     predictor = Predictor(
         model, exp, COCO_CLASSES, trt_file, decoder,
         args.device, args.fp16, args.legacy,
     )
     current_time = time.localtime()
-    #if args.demo == "image":
-    image_demo(predictor, vis_folder, args.path, current_time, args.save_result)
-    
-    '''
-    #args.demo == "video" or args.demo == "webcam":
-    
-    imageflow_demo(predictor, vis_folder, current_time, args)
-    '''
+    if args.demo == "image":
+        image_demo(predictor, vis_folder, args.path, current_time, args.save_result)
+    elif args.demo == "video" or args.demo == "webcam":
+        imageflow_demo(predictor, vis_folder, current_time, args)
+
 
 if __name__ == "__main__":
     args = make_parser().parse_args()
