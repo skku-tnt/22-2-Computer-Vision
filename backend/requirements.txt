@@ -4,4 +4,4 @@ opencv-python
 pillow
 python-multipart
 uvicorn
-torch
+onnxruntime

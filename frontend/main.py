@@ -1,6 +1,4 @@
 import streamlit as st
-import pandas as pd
-from yolox import *
 import cv2
 import tempfile
 
