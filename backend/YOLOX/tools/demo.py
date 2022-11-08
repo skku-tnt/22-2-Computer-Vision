@@ -24,8 +24,8 @@ def make_parser():
     parser.add_argument(
         "demo", default="image", help="demo type, eg. image, video and webcam"
     )
-    parser.add_argument("-expn", "--experiment-name", type=str, default=None)
-    parser.add_argument("-n", "--name", type=str, default=None, help="model name")
+    parser.add_argument("-expn", "--experiment-name", type=str, default='yolox-nano')
+    parser.add_argument("-n", "--name", type=str, default='yolox-nano', help="model name")
 
     parser.add_argument(
         "--path", default="./assets/dog.jpg", help="path to images or video"
@@ -210,23 +210,26 @@ def image_demo(predictor, vis_folder, path, current_time, save_result):
             break
 
 
-def imageflow_demo(predictor, vis_folder, current_time, args):
+def imageflow_demo(predictor, vis_folder, save_file_name, args):
     cap = cv2.VideoCapture(args.path if args.demo == "video" else args.camid)
     width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)  # float
     height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)  # float
     fps = cap.get(cv2.CAP_PROP_FPS)
     if args.save_result:
+        '''
         save_folder = os.path.join(
             vis_folder, time.strftime("%Y_%m_%d_%H_%M_%S", current_time)
         )
         os.makedirs(save_folder, exist_ok=True)
+        
         if args.demo == "video":
             save_path = os.path.join(save_folder, os.path.basename(args.path))
         else:
             save_path = os.path.join(save_folder, "camera.mp4")
         logger.info(f"video save_path is {save_path}")
+        '''
         vid_writer = cv2.VideoWriter(
-            save_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (int(width), int(height))
+            save_file_name, cv2.VideoWriter_fourcc(*"mp4v"), fps, (int(width), int(height))
         )
     while True:
         ret_val, frame = cap.read()
@@ -289,7 +292,7 @@ def opencv_img_save(img, save_img_path, save_img_name):
 
 
 
-def main(exp, args):
+def main(exp, args, save_file_name):
     if not args.experiment_name:
         args.experiment_name = exp.exp_name
 
@@ -300,7 +303,7 @@ def main(exp, args):
     if args.save_result:
         vis_folder = os.path.join(file_name, "vis_res")
         os.makedirs(vis_folder, exist_ok=True)
-
+    args.save_result = True
     if args.trt:
         args.device = "gpu"
 
@@ -328,6 +331,7 @@ def main(exp, args):
         else:
             ckpt_file = args.ckpt
         logger.info("loading checkpoint")
+        ckpt_file = '/app/YOLOX/YOLOX_outputs/yolox_nano/best_ckpt.pth'
         ckpt = torch.load(ckpt_file, map_location="cpu")
         # load the model state dict
         model.load_state_dict(ckpt["model"])
@@ -358,7 +362,7 @@ def main(exp, args):
     if args.demo == "image":
         image_demo(predictor, vis_folder, args.path, current_time, args.save_result)
     elif args.demo == "video" or args.demo == "webcam":
-        imageflow_demo(predictor, vis_folder, current_time, args)
+        imageflow_demo(predictor, vis_folder,save_file_name ,args)
 
 
 if __name__ == "__main__":
