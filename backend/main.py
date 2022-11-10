@@ -1,5 +1,4 @@
 import uuid
-
 import time
 import cv2
 import uvicorn
@@ -15,6 +14,7 @@ from functools import partial
 
 import configs
 import inference
+from utils import mkdir
 
 app = FastAPI()
 
@@ -22,6 +22,28 @@ app = FastAPI()
 @app.get("/")
 def read_root():
     return {"message": "Welcome from the API"}
+
+# get input image and find what objects are in the image
+@app.post("/inspect_image")
+def inspect_image(file: UploadFile = File(...)):
+    image = cv2.cvtColor(np.array(Image.open(file.file)), cv2.COLOR_RGB2BGR)
+    model_path = 'yolox_s.onnx'
+    
+    #cv2 image
+    result_image = inference.inference(model_path, image)
+
+    output_dir = '/storage'
+    mkdir(output_dir)
+
+    name = f"/storage/{str(uuid.uuid4())}.png"
+    cv2.imwrite(name, result_image)
+    return {"name": name}
+
+
+@app.post("/inspect_video")
+def inspect_image(file: UploadFile = File(...)):
+    current_time = time.localtime()   
+    cap = file.file
 
 
 @app.post("/{style}")
@@ -50,8 +72,6 @@ def process_image(models, image, name: str):
         name = name.split(".")[0]
         name = f"{name.split('_')[0]}_{models[model]}.jpg"
         cv2.imwrite(name, output)
-
-
 
 
 if __name__ == "__main__":
