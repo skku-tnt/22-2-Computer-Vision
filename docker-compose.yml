@@ -1,0 +1,20 @@
+version: '3'
+
+services:
+  frontend:
+    build: frontend
+    command : ["streamlit", "run", "main.py", "--server.headless=true"]
+    ports:
+      - 8501:8501
+    depends_on:
+      - backend
+    volumes:
+      - ./storage:/storage
+  backend:
+    build: backend
+    ports:
+      - 8080:8080
+    volumes:
+      - ./storage:/storage
+    tty: true
+    stdin_open: true
