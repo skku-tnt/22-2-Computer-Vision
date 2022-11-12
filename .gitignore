@@ -1,6 +1,5 @@
 .vscode/settings.json
 __pycache__/
 *.ipynb
-.ipynb_checkpoints
-*/.ipynb_checkpoints/*
-*.png
+.ipynb_checkpoints/
+storage/
