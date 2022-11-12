@@ -4,11 +4,13 @@ import numpy as np
 import cv2
 import onnxruntime
 
-from utils import preprocess, demo_postprocess, multiclass_nms, mkdir
+from utils import preprocess, demo_postprocess, multiclass_nms
 from visualization import vis
 from configs import COCO_CLASSES
 
-def inference(model_path, cv2_image):
+def inference(cv2_image):
+
+    model_path = 'yolox_s.onnx'
 
     input_shape = (640, 640)
     img, ratio = preprocess(cv2_image, input_shape)
@@ -36,6 +38,3 @@ def inference(model_path, cv2_image):
                         conf=score_thr, class_names=COCO_CLASSES)
 
     return origin_img
-
-if __name__ == "__main__":
-    inference("test.jpg")
