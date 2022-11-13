@@ -1,8 +1,6 @@
-import os
 from PIL import Image
 import requests
 import streamlit as st
-import cv2
 
 st.title("Mosaic for you")
 
@@ -22,12 +20,21 @@ def main():
 
 
 if st.button("Image inspect"):
+  st.session_state.disabled = False
   # get image/video info from backend
   if file is not None:
     print(file.name)
     files = {"file": file.getvalue()}
     data = {'filename': file.name}
-  pass
+
+    if file.name.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif')):
+      res = requests.post(f"http://backend:8080/inspect_image", files=files)
+
+      object_lists = res.json()
+      object_lists = object_lists.get("data")
+
+      if st.radio('Select objects to mosaic', object_lists):
+        st.session_state.disabled = False
 
 
 if st.button("Image/Video object detection"):
@@ -38,14 +45,14 @@ if st.button("Image/Video object detection"):
     data = {'filename': file.name}
 
     if file.name.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif')):
-      res = requests.post(f"http://backend:8080/inspect_image", files=files)
+      res = requests.post(f"http://backend:8080/image_detection", files=files)
 
       img_path = res.json()
       image = Image.open(img_path.get("name"))
       st.image(image)
 
     elif file.name.lower().endswith(('.avi', '.wmv', '.mp4', '.mkv', '.mov')):
-      res = requests.post(f"http://backend:8080/inspect_video", files=files)
+      res = requests.post(f"http://backend:8080/video_detection", files=files)
       video_path = res.json()
       video_file = open(video_path.get("name"), 'rb')
       video_bytes = video_file.read()

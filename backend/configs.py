@@ -1,4 +1,5 @@
-MODEL_PATH = "./models/"
+MODEL_PATH = 'yolox_s.onnx'
+INPUT_SHAPE = (640, 640)
 
 STYLES = {
     "candy": "candy",

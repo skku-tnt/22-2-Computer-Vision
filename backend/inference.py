@@ -1,26 +1,56 @@
 import os
-import time
+import uuid
 import numpy as np
 import cv2
 import onnxruntime
+from tempfile import NamedTemporaryFile
 
 from utils import preprocess, demo_postprocess, multiclass_nms
 from visualization import vis
-from configs import COCO_CLASSES
+from configs import MODEL_PATH, INPUT_SHAPE, COCO_CLASSES
 
 def inference(cv2_image):
 
-    model_path = 'yolox_s.onnx'
+    dets = get_dets(cv2_image)
+    score_thr = 0.3
 
-    input_shape = (640, 640)
-    img, ratio = preprocess(cv2_image, input_shape)
+    if dets is not None:
+        final_boxes, final_scores, final_cls_inds = dets[:, :4], dets[:, 4], dets[:, 5]
+        origin_img = vis(cv2_image, final_boxes, final_scores, final_cls_inds,
+                        conf=score_thr, class_names=COCO_CLASSES)
 
-    session = onnxruntime.InferenceSession(model_path)
+    return origin_img
+
+# return what kind of object labels are in an image
+def get_label_names(cv2_image, conf = 0.5):
+
+    dets = get_dets(cv2_image)
+    _, final_scores, final_cls_inds = dets[:, :4], dets[:, 4], dets[:, 5]
+    final_object_lists = []
+
+    for i in range(len(final_cls_inds)):
+        cls_id = int(final_cls_inds[i])
+        score = final_scores[i]
+        if score < conf:
+            continue
+        if cls_id not in final_object_lists:
+            final_object_lists.append(cls_id)
+
+    return final_object_lists
+
+def process_selected_images(cv2_image):
+
+    pass
+
+def get_dets(cv2_image):
+
+    img, ratio = preprocess(cv2_image, INPUT_SHAPE)
+
+    session = onnxruntime.InferenceSession(MODEL_PATH)
 
     ort_inputs = {session.get_inputs()[0].name: img[None, :, :, :]}
     output = session.run(None, ort_inputs)
-    predictions = demo_postprocess(output[0], input_shape, p6=False)[0]
-    score_thr = 0.3
+    predictions = demo_postprocess(output[0], INPUT_SHAPE, p6=False)[0]
 
     boxes = predictions[:, :4]
     scores = predictions[:, 4:5] * predictions[:, 5:]
@@ -32,9 +62,41 @@ def inference(cv2_image):
     boxes_xyxy[:, 3] = boxes[:, 1] + boxes[:, 3]/2.
     boxes_xyxy /= ratio
     dets = multiclass_nms(boxes_xyxy, scores, nms_thr=0.45, score_thr=0.1)
-    if dets is not None:
-        final_boxes, final_scores, final_cls_inds = dets[:, :4], dets[:, 4], dets[:, 5]
-        origin_img = vis(cv2_image, final_boxes, final_scores, final_cls_inds,
-                        conf=score_thr, class_names=COCO_CLASSES)
 
-    return origin_img
+    return dets
+
+def process_video(video_name : NamedTemporaryFile.__name__):
+
+    try:
+        cap= cv2.VideoCapture(video_name)
+    except Exception:
+        print('error')
+    width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+    height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+
+    name = f"/storage/{str(uuid.uuid4())}_tmp.mp4"
+
+    vid_writer = cv2.VideoWriter(
+            name, cv2.VideoWriter_fourcc(*"mp4v"), fps, (int(width), int(height))
+        )
+
+    while True:
+        ret_val, frame = cap.read()
+        if ret_val:
+            result_frame = inference(frame)
+            vid_writer.write(result_frame)
+ 
+            ch = cv2.waitKey(1)
+            if ch == 27 or ch == ord("q") or ch == ord("Q"):
+                break
+        else:
+            break
+
+    cap.release()
+    vid_writer.release()
+
+    name_ = name.replace('_tmp', '')
+    os.system('ffmpeg -i {} -vcodec libx264 {}'.format(name, name_))
+
+    return name_
