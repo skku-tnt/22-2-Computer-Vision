@@ -7,13 +7,14 @@ from fastapi import FastAPI
 from fastapi import UploadFile
 import numpy as np
 from PIL import Image
+from pydantic import BaseModel
 
 from tempfile import NamedTemporaryFile
 
-from inference import inference, process_video, get_label_names, process_selected_labels
+from inference import inference, process_video, get_label_names
 from utils import mkdir
 
-class customdata():
+class customdata(BaseModel):
 	ids : list
 
 app = FastAPI()
