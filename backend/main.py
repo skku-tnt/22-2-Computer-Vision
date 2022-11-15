@@ -10,8 +10,11 @@ from PIL import Image
 
 from tempfile import NamedTemporaryFile
 
-from inference import inference, process_video, get_label_names
+from inference import inference, process_video, get_label_names, process_selected_labels
 from utils import mkdir
+
+class customdata():
+	ids : list
 
 app = FastAPI()
 
@@ -35,12 +38,30 @@ def inspect_video(file: UploadFile = File(...)):
 
     pass
 
+@app.post("/process_selected_labels")
+def process_selected_labels(data: customdata, file: UploadFile = File(...)):
+    image = cv2.cvtColor(np.array(Image.open(file.file)), cv2.COLOR_RGB2BGR)
+
+    # form : {"ids" : [1, 2, 3]}
+    received = data.dict()
+    ids = received["ids"]
+
+    #cv2 image
+    result_image = inference(image, ids)
+
+    output_dir = '/storage'
+    mkdir(output_dir)
+
+    name = f"/storage/{str(uuid.uuid4())}.png"
+    cv2.imwrite(name, result_image)
+    return {"name": name}
+
 
 # get input image and return object detection result
 @app.post("/image_detection")
 def image_detection(file: UploadFile = File(...)):
     image = cv2.cvtColor(np.array(Image.open(file.file)), cv2.COLOR_RGB2BGR)
-    
+
     #cv2 image
     result_image = inference(image)
 

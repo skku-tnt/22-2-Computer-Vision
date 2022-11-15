@@ -9,20 +9,18 @@ from utils import preprocess, demo_postprocess, multiclass_nms
 from visualization import vis
 from configs import MODEL_PATH, INPUT_SHAPE, COCO_CLASSES
 
-def inference(cv2_image):
+def inference(cv2_image, ids:list=None):
 
     dets = get_dets(cv2_image)
-    score_thr = 0.3
-
-    if dets is not None:
-        final_boxes, final_scores, final_cls_inds = dets[:, :4], dets[:, 4], dets[:, 5]
-        origin_img = vis(cv2_image, final_boxes, final_scores, final_cls_inds,
-                        conf=score_thr, class_names=COCO_CLASSES)
+    score_thr = 0.5
+    final_boxes, final_scores, final_cls_inds = dets[:, :4], dets[:, 4], dets[:, 5]
+    origin_img = vis(cv2_image, final_boxes, final_scores, final_cls_inds,
+                        conf=score_thr, class_names=COCO_CLASSES, ids=ids)
 
     return origin_img
 
 # return what kind of object labels are in an image
-def get_label_names(cv2_image, conf = 0.5):
+def get_label_names(cv2_image, conf = 0.3):
 
     dets = get_dets(cv2_image)
     _, final_scores, final_cls_inds = dets[:, :4], dets[:, 4], dets[:, 5]
@@ -37,10 +35,6 @@ def get_label_names(cv2_image, conf = 0.5):
             final_object_lists.append(cls_id)
 
     return final_object_lists
-
-def process_selected_images(cv2_image):
-
-    pass
 
 def get_dets(cv2_image):
 
