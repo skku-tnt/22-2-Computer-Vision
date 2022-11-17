@@ -1,5 +1,6 @@
-import numpy as np
 import cv2
+import numpy as np
+
 
 def vis(img, boxes, scores, cls_ids, conf=0.5, class_names=None, ids=None):
 
@@ -37,6 +38,67 @@ def vis(img, boxes, scores, cls_ids, conf=0.5, class_names=None, ids=None):
         cv2.putText(img, text, (x0, y0 + txt_size[1]), font, 0.4, txt_color, thickness=1)
 
     return img
+
+def vis_mosaic(img, boxes, scores, cls_ids, conf=0.5, class_names=None, ids=None):
+
+    for i in range(len(boxes)):
+        img = mosaic_area(img,boxes[i], 0.1)
+    
+    return img
+    
+
+def mosaic(src, ratio):
+    """
+    ### 모자이크 기능
+    :param src: 이미지 소스
+    :param ratio: 모자이크 비율
+    :return: 모자이크가 처리된 이미지
+    """
+    '''
+    try:
+        small = cv2.resize(src, None, fx=ratio, fy=ratio, interpolation=cv2.INTER_NEAREST)
+        mosaic_img = cv2.resize(small, src.shape[:2][::-1], interpolation=cv2.INTER_NEAREST)
+        except:
+        break
+        '''
+
+    small = cv2.resize(src, None, fx=ratio, fy=ratio, interpolation=cv2.INTER_NEAREST)
+    mosaic_img = cv2.resize(small, src.shape[:2][::-1], interpolation=cv2.INTER_NEAREST)
+    return mosaic_img
+
+
+def mosaic_area(src, outputs, ratio):
+    """
+    ### 부분 모자이크 기능
+    :param src: 이미지 소스
+    :param x: 가로축 모자이크 시작 범위
+    :param y: 세로축 모자이크 시작 범위
+    :param width: 모자이크 범위 넓이
+    :param height: 모자이크 범위 폭
+    :param ratio: 모자이크 비율
+    :return: 부분 모자이크가 처리된 이미지
+    """
+    mosaic_area_img = src.copy()
+    for i in range(len(outputs)):
+        if outputs[i] < 0 :
+            outputs[i] = 0
+    mosaic_area_img[int(outputs[1]):int(outputs[3]), int(outputs[0]):int(outputs[2])] = mosaic(mosaic_area_img[int(outputs[1]):int(outputs[3]), int(outputs[0]):int(outputs[2])], ratio)
+        
+            
+        
+    return mosaic_area_img
+
+
+def opencv_img_save(img, save_img_path, save_img_name):
+    """
+    ### 처리 이미지 저장 기능
+    :param img: 저장할 이미지
+    :param save_img_path: 이미지 저장 경로
+    :param save_img_name: 저장할 이미지 명
+    """
+    cv2.imwrite(save_img_path + save_img_name, img)
+
+
 
 
 _COLORS = np.array(
