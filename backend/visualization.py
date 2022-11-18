@@ -1,6 +1,9 @@
 import cv2
 import numpy as np
 
+def im_trim(img, x_0, y_0, x_1, y_1):
+    imgtrim = img[y_0: y_1, x_0: x_1]
+    return imgtrim
 
 def vis(img, boxes, scores, cls_ids, conf=0.5, class_names=None, ids=None):
 
@@ -39,11 +42,25 @@ def vis(img, boxes, scores, cls_ids, conf=0.5, class_names=None, ids=None):
 
     return img
 
-def vis_mosaic(img, boxes, scores, cls_ids, conf=0.5, class_names=None, ids=None):
 
+def vis_mosaic(img, boxes, face_boxes, scores, cls_ids, conf=0.5, class_names=None, ids=None):
+    if face_boxes:
+        face_boxes = face_boxes[0]
+    else:
+        return img
+    face_boxes = list(map(int, face_boxes))
+    face_trim_list = []  
+   
+    for i in range(len(face_boxes)):
+        imgtrim = im_trim(img, face_boxes[0], face_boxes[1],  face_boxes[2],  face_boxes[3])
+        face_trim_list.append(imgtrim)
+   
     for i in range(len(boxes)):
         img = mosaic_area(img,boxes[i], 0.1)
-    
+        for j in range(len(face_trim_list)):
+
+            img[face_boxes[1]: face_boxes[3], face_boxes[0]: face_boxes[2]] = face_trim_list[j]
+        #print('mosaic done')
     return img
     
 

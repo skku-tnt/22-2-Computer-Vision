@@ -77,6 +77,8 @@ def image_detection(file: UploadFile = File(...)):
 @app.post("/video_detection")
 def video_detection(file: UploadFile = File(...)):
     temp = NamedTemporaryFile(delete=False)
+    
+    
     try:
         try:
             contents = file.file.read()

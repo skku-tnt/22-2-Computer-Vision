@@ -5,3 +5,7 @@ pillow
 python-multipart
 uvicorn
 onnxruntime
+facenet_pytorch 
+torch
+torchvision
+mmcv

@@ -8,6 +8,7 @@ from tempfile import NamedTemporaryFile
 from utils import preprocess, demo_postprocess, multiclass_nms
 from visualization import vis, vis_mosaic
 from configs import MODEL_PATH, INPUT_SHAPE, COCO_CLASSES
+from live_face_recognition.face_recognition import face_recognition
 
 def inference(cv2_image, ids:list=None):
 
@@ -22,9 +23,10 @@ def inference(cv2_image, ids:list=None):
 def inference_mosaic(cv2_image, ids:list=None):
 
     dets = get_dets(cv2_image)
+    face_boxes = face_recognition(cv2_image)
     score_thr = 0.5
     final_boxes, final_scores, final_cls_inds = dets[:, :4], dets[:, 4], dets[:, 5]
-    origin_img = vis_mosaic(cv2_image, final_boxes, final_scores, final_cls_inds,
+    origin_img = vis_mosaic(cv2_image, final_boxes, face_boxes ,final_scores, final_cls_inds,
                         conf=score_thr, class_names=COCO_CLASSES, ids=ids)
 
     return origin_img
@@ -79,9 +81,8 @@ def process_video(video_name : NamedTemporaryFile.__name__):
     height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
     fps = cap.get(cv2.CAP_PROP_FPS)
 
-    name = f"/storage/{str(uuid.uuid4())}_tmp.mp4"
-  
-
+    name = f"./storage/{str(uuid.uuid4())}_tmp.mp4"
+    
     vid_writer = cv2.VideoWriter(
             name, cv2.VideoWriter_fourcc(*"mp4v"), fps, (int(width), int(height))
         )
