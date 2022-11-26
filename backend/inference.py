@@ -20,7 +20,7 @@ def inference(cv2_image, ids:list=None):
     return origin_img
 
 # return what kind of object labels are in an image
-def get_label_names(cv2_image, conf = 0.3):
+def get_label_names(cv2_image, conf = 0.5):
 
     dets = get_dets(cv2_image)
     _, final_scores, final_cls_inds = dets[:, :4], dets[:, 4], dets[:, 5]
