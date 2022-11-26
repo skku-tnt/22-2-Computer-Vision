@@ -2,6 +2,8 @@ from PIL import Image
 import requests
 import streamlit as st
 
+from configs import COCO_CLASSES
+
 st.title("Mosaic for you")
 
 file = st.file_uploader("Choose a video or image")
@@ -32,8 +34,9 @@ if st.button("Image inspect"):
 
       object_lists = res.json()
       object_lists = object_lists.get("data")
+      str_lists = [COCO_CLASSES[object_lists[i]] for i in range(len(object_lists))]
 
-      if st.radio('Select objects to mosaic', object_lists):
+      if st.radio('Select objects to mosaic', str_lists):
         st.session_state.disabled = False
 
 
