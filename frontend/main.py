@@ -4,10 +4,6 @@ import streamlit as st
 
 from configs import COCO_CLASSES
 
-st.title("Mosaic for you")
-
-file = st.file_uploader("Choose a video or image")
-
 def main():
 
   st.markdown(
@@ -20,32 +16,52 @@ def main():
   unsafe_allow_html=True,
   )
 
+  st.title("Mosaic for you")
+  file = st.file_uploader("Choose a video or image")
 
-if st.button("Image inspect"):
-  st.session_state.disabled = False
-  # get image/video info from backend
-  if file is not None:
-    print(file.name)
+  button1 = st.button("Image inspect")
+  str_lists = image_inspect(button1, file)
+
+  res = make_checkbox(str_lists)
+
+  button2 = st.button("Image/Video object detection")
+  object_detection(button2, file)
+
+
+def image_inspect(button, file):
+
+  if button and (file is not None):
     files = {"file": file.getvalue()}
-    data = {'filename': file.name}
 
     if file.name.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif')):
-      res = requests.post(f"http://backend:8080/inspect_image", files=files)
+        res = requests.post(f"http://backend:8080/inspect_image", files=files)
 
-      object_lists = res.json()
-      object_lists = object_lists.get("data")
-      str_lists = [COCO_CLASSES[object_lists[i]] for i in range(len(object_lists))]
+        object_lists = res.json()
+        object_lists = object_lists.get("data")
+        length = len(object_lists)
+        str_lists = [COCO_CLASSES[object_lists[i]] for i in range(length)]
 
-      if st.radio('Select objects to mosaic', str_lists):
-        st.session_state.disabled = False
+        return str_lists
 
+def make_checkbox(str_lists):
 
-if st.button("Image/Video object detection"):
-  # get image/video info from backend
-  if file is not None:
-    print(file.name)
+  checkbox_list = []
+
+  if str_lists is not None:
+    for i in range(len(str_lists)):
+      label = str_lists[i]
+      checkbox = st.checkbox(label=label, value=False, key=label)
+      checkbox_list.append(checkbox)
+
+  if checkbox_list is not None:
+    for checkbox in checkbox_list:
+      if checkbox:
+        st.write(checkbox.label)
+
+def object_detection(button, file):
+
+  if button and (file is not None):
     files = {"file": file.getvalue()}
-    data = {'filename': file.name}
 
     if file.name.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif')):
       res = requests.post(f"http://backend:8080/image_detection", files=files)
