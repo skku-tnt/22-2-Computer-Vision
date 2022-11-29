@@ -1,6 +1,7 @@
 from PIL import Image
 import requests
 import streamlit as st
+import json
 
 from configs import COCO_CLASSES
 
@@ -19,44 +20,57 @@ def main():
   st.title("Mosaic for you")
   file = st.file_uploader("Choose a video or image")
 
-  button1 = st.button("Image inspect")
-  str_lists = image_inspect(button1, file)
-
-  res = make_checkbox(str_lists)
+  if file is not None:
+    int_list, str_list = image_inspect(file)
+  
+    if str_list is not None:
+      detect_selected_objects(int_list, str_list, file)
 
   button2 = st.button("Image/Video object detection")
   object_detection(button2, file)
 
 
-def image_inspect(button, file):
+def image_inspect(file):
 
-  if button and (file is not None):
+  if (file is not None):
     files = {"file": file.getvalue()}
 
     if file.name.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif')):
         res = requests.post(f"http://backend:8080/inspect_image", files=files)
 
-        object_lists = res.json()
-        object_lists = object_lists.get("data")
-        length = len(object_lists)
-        str_lists = [COCO_CLASSES[object_lists[i]] for i in range(length)]
+        object_list = res.json()
+        object_list = object_list.get("data")
+        length = len(object_list)
+        str_list = [COCO_CLASSES[object_list[i]] for i in range(length)]
 
-        return str_lists
+        return object_list, str_list
 
-def make_checkbox(str_lists):
+def detect_selected_objects(int_list, str_list, file):
 
   checkbox_list = []
+  st.write("Select labels to blur")
 
-  if str_lists is not None:
-    for i in range(len(str_lists)):
-      label = str_lists[i]
+  if str_list is not None:
+    for i in range(len(str_list)):
+      label = str_list[i]
       checkbox = st.checkbox(label=label, value=False, key=label)
       checkbox_list.append(checkbox)
+  
+  if st.button("confirm and detect") and (file is not None):
+    return_list = []
+    for i in range(len(str_list)):
+      if checkbox_list[i]:
+        return_list.append(int_list[i])
 
-  if checkbox_list is not None:
-    for checkbox in checkbox_list:
-      if checkbox:
-        st.write(checkbox.label)
+    files = {"file": file.getvalue()}
+    if file.name.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif')):
+      data = {"ids" : [1, 2, 3]}
+      res = requests.post(f"http://backend:8080/process_selected_labels", data=data, files=files)
+
+      img_path = res.json()
+      image = Image.open(img_path.get("name"))
+      st.image(image)
+    
 
 def object_detection(button, file):
 
