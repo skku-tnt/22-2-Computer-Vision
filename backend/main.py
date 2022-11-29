@@ -81,7 +81,7 @@ def video_detection(file: UploadFile = File(...)):
         try:
             contents = file.file.read()
             with temp as f:
-                f.write(contents);
+                f.write(contents)
         except Exception:
             return {"message": "There was an error uploading the file"}
         finally:
