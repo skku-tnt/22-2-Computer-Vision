@@ -1,13 +1,17 @@
 import numpy as np
 import cv2
 
-def vis(img, boxes, scores, cls_ids, conf=0.5, class_names=None):
+def vis(img, boxes, scores, cls_ids, conf=0.5, class_names=None, ids=None):
 
     for i in range(len(boxes)):
         box = boxes[i]
         cls_id = int(cls_ids[i])
         score = scores[i]
+
         if score < conf:
+            continue
+
+        if ids is not None and cls_id not in ids:
             continue
         x0 = int(box[0])
         y0 = int(box[1])

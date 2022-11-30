@@ -1,18 +1,3 @@
-MODEL_PATH = 'yolox_s.onnx'
-INPUT_SHAPE = (640, 640)
-
-STYLES = {
-    "candy": "candy",
-    "composition 6": "composition_vii",
-    "feathers": "feathers",
-    "la_muse": "la_muse",
-    "mosaic": "mosaic",
-    "starry night": "starry_night",
-    "the scream": "the_scream",
-    "the wave": "the_wave",
-    "udnie": "udnie",
-}
-
 COCO_CLASSES = (
     "person",
     "bicycle",
