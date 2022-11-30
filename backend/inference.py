@@ -9,7 +9,7 @@ from utils import preprocess, demo_postprocess, multiclass_nms
 from visualization import vis
 from configs import MODEL_PATH, INPUT_SHAPE, COCO_CLASSES
 
-def inference(cv2_image, ids:list=None):
+def inference(cv2_image, ids: list=None):
 
     dets = get_dets(cv2_image)
     score_thr = 0.5

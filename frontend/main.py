@@ -29,7 +29,6 @@ def main():
   button2 = st.button("Image/Video object detection")
   object_detection(button2, file)
 
-
 def image_inspect(file):
 
   if (file is not None):
@@ -44,6 +43,7 @@ def image_inspect(file):
         str_list = [COCO_CLASSES[object_list[i]] for i in range(length)]
 
         return object_list, str_list
+
 
 def detect_selected_objects(int_list, str_list, file):
 
@@ -64,13 +64,13 @@ def detect_selected_objects(int_list, str_list, file):
 
     files = {"file": file.getvalue()}
     if file.name.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif')):
-      data = {"ids" : [1, 2, 3]}
-      res = requests.post(f"http://backend:8080/process_selected_labels", data=data, files=files)
+
+      id_string = encode(return_list)
+      res = requests.post(f"http://backend:8080/process_selected_labels/{id_string}",files=files)
 
       img_path = res.json()
       image = Image.open(img_path.get("name"))
       st.image(image)
-    
 
 def object_detection(button, file):
 
@@ -91,6 +91,15 @@ def object_detection(button, file):
       video_bytes = video_file.read()
       st.video(video_bytes)
 
+def encode(id_list: list):
+
+    return_string = ""
+    length = len(id_list)
+    for i in range(length):
+        return_string += str(id_list[i])
+        if i < length - 1:
+            return_string += "_"
+    return return_string
         
 if __name__ == '__main__':
   try:
