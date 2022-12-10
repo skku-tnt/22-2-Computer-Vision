@@ -34,7 +34,7 @@ def image_inspect(file):
   if (file is not None):
     files = {"file": file.getvalue()}
 
-    if file.name.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif')):
+    if file.name.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif', '.webp')):
         res = requests.post(f"http://backend:8080/inspect_image", files=files)
 
         object_list = res.json()
@@ -63,7 +63,7 @@ def detect_selected_objects(int_list, str_list, file):
         return_list.append(int_list[i])
 
     files = {"file": file.getvalue()}
-    if file.name.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif')):
+    if file.name.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif', '.webp')):
 
       id_string = encode(return_list)
       res = requests.post(f"http://backend:8080/process_selected_labels/{id_string}",files=files)
@@ -77,7 +77,7 @@ def object_detection(button, file):
   if button and (file is not None):
     files = {"file": file.getvalue()}
 
-    if file.name.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif')):
+    if file.name.lower().endswith(('.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif', '.webp')):
       res = requests.post(f"http://backend:8080/image_detection", files=files)
 
       img_path = res.json()
