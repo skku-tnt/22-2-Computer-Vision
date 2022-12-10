@@ -1,5 +1,5 @@
-MODEL_PATH = 'yolox_s.onnx'
-INPUT_SHAPE = (640, 640)
+MODEL_PATH = 'face_recog.onnx'
+INPUT_SHAPE = (416, 416)
 
 STYLES = {
     "candy": "candy",
