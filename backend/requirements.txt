@@ -9,3 +9,4 @@ facenet_pytorch
 torch
 torchvision
 mmcv
+loguru

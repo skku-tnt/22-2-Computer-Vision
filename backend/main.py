@@ -7,11 +7,12 @@ from fastapi import FastAPI
 from fastapi import UploadFile
 import numpy as np
 from PIL import Image
+from loguru import logger
 
 from tempfile import NamedTemporaryFile
 
-from inference import inference, process_video, get_label_names
-from utils import mkdir, decode
+from inference import inference, process_video, get_label_names, save_video, inference_first_frame
+from utils import mkdir, decode, get_first_frame
 
 app = FastAPI()
 
@@ -29,11 +30,43 @@ def inspect_image(file: UploadFile = File(...)):
 
     return {"data": label_names}
 
+# video 첫번째 이미지 불러와서 인물 따오기
 @app.post("/inspect_video")
 def inspect_video(file: UploadFile = File(...)):
+    temp = NamedTemporaryFile(delete=False)
     
+    
+    try:
+        try:
+            contents = file.file.read()
+            with temp as f:
+                f.write(contents)
+        except Exception:
+            return {"message": "There was an error uploading the file"}
+        finally:
+            file.file.close()
+        name = save_video(temp.name)
+        logger.info("video save Done")
+        logger.info(name)
+        image = get_first_frame(name)
+        #image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+        label_names = get_label_names(image)
+        logger.info(label_names)
+        first_frame_name = f"/storage/{str(uuid.uuid4())}.png"
+        cv2.imwrite(first_frame_name, image)
+        logger.info('save image done')
+        image, faces = inference_first_frame(image)
+        logger.info("inference firest frame done")
+        logger.info(name)
+        infered_image = f"/storage/{str(uuid.uuid4())}.png"
+        cv2.imwrite(infered_image, image)
+
+    except Exception:
+        return {"message": "There was an error processing the file"}
+    finally:
+        os.remove(temp.name)
     # use 'get_label_names' per video frame
-    pass
+    return {"data": label_names,'infered_image' : infered_image, 'faces': faces}
 
 @app.post("/process_selected_labels/{ids}")
 def process_selected_labels(ids: str, file: UploadFile = File(...)):

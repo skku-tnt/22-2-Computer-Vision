@@ -1,9 +1,27 @@
 import cv2
 import numpy as np
+import uuid
+from loguru import logger
 
 def im_trim(img, x_0, y_0, x_1, y_1):
     imgtrim = img[y_0: y_1, x_0: x_1]
     return imgtrim
+
+## 얼굴만 잘라서 저장
+def vis_face(img, face_boxes, scores, cls_ids, conf=0.5, class_names=None, ids=None):
+
+    face_boxes = face_boxes.astype(int)
+    face_boxes = face_boxes.tolist()
+    faces = []  
+   
+    for i in range(len(face_boxes)):
+        imgtrim = im_trim(img, face_boxes[i][0], face_boxes[i][1],  face_boxes[i][2],  face_boxes[i][3])
+        name = f"/storage/{str(uuid.uuid4())}.png"
+        faces.append([i ,[face_boxes[i][0], face_boxes[i][1],  face_boxes[i][2],  face_boxes[i][3]], name])
+        # 번호, 좌표들, 얼굴사진 주소
+        cv2.imwrite(name, imgtrim)
+
+    return faces
 
 def vis(img, boxes, scores, cls_ids, conf=0.5, class_names=None, ids=None):
 
