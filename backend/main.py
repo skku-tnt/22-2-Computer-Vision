@@ -7,15 +7,11 @@ from fastapi import FastAPI
 from fastapi import UploadFile
 import numpy as np
 from PIL import Image
-from pydantic import BaseModel
 
 from tempfile import NamedTemporaryFile
 
 from inference import inference, process_video, get_label_names
-from utils import mkdir
-
-class customdata(BaseModel):
-	ids : list
+from utils import mkdir, decode
 
 app = FastAPI()
 
@@ -36,18 +32,15 @@ def inspect_image(file: UploadFile = File(...)):
 @app.post("/inspect_video")
 def inspect_video(file: UploadFile = File(...)):
     
-
+    # use 'get_label_names' per video frame
     pass
 
-@app.post("/process_selected_labels")
-def process_selected_labels(data: customdata, file: UploadFile = File(...)):
+@app.post("/process_selected_labels/{ids}")
+def process_selected_labels(ids: str, file: UploadFile = File(...)):
+
     image = cv2.cvtColor(np.array(Image.open(file.file)), cv2.COLOR_RGB2BGR)
 
-    # form : {"ids" : [1, 2, 3]}
-    received = data.dict()
-    ids = received["ids"]
-
-    #cv2 image
+    ids = decode(ids)
     result_image = inference(image, ids)
 
     output_dir = '/storage'
@@ -56,7 +49,6 @@ def process_selected_labels(data: customdata, file: UploadFile = File(...)):
     name = f"/storage/{str(uuid.uuid4())}.png"
     cv2.imwrite(name, result_image)
     return {"name": name}
-
 
 # get input image and return object detection result
 @app.post("/image_detection")
@@ -83,7 +75,7 @@ def video_detection(file: UploadFile = File(...)):
         try:
             contents = file.file.read()
             with temp as f:
-                f.write(contents);
+                f.write(contents)
         except Exception:
             return {"message": "There was an error uploading the file"}
         finally:

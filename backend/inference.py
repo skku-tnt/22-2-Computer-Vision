@@ -10,7 +10,7 @@ from visualization import vis, vis_mosaic
 from configs import MODEL_PATH, INPUT_SHAPE, COCO_CLASSES
 from live_face_recognition.face_recognition import face_recognition
 
-def inference(cv2_image, ids:list=None):
+def inference(cv2_image, ids: list=None):
 
     dets = get_dets(cv2_image)
     score_thr = 0.5
@@ -32,7 +32,7 @@ def inference_mosaic(cv2_image, ids:list=None):
     return origin_img
 
 # return what kind of object labels are in an image
-def get_label_names(cv2_image, conf = 0.3):
+def get_label_names(cv2_image, conf = 0.5):
 
     dets = get_dets(cv2_image)
     _, final_scores, final_cls_inds = dets[:, :4], dets[:, 4], dets[:, 5]

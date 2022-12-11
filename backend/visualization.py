@@ -15,7 +15,7 @@ def vis(img, boxes, scores, cls_ids, conf=0.5, class_names=None, ids=None):
         if score < conf:
             continue
 
-        if ids is not None and cls_id in ids:
+        if ids is not None and cls_id not in ids:
             continue
         x0 = int(box[0])
         y0 = int(box[1])

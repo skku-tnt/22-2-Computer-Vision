@@ -102,3 +102,8 @@ def multiclass_nms(boxes, scores, nms_thr, score_thr, class_agnostic=True):
     """Multiclass NMS implemented in Numpy"""
 
     return multiclass_nms_class_agnostic(boxes, scores, nms_thr, score_thr)
+
+def decode(input_string: str):
+
+    str_list = input_string.split("_")
+    return [int(x) for x in str_list]
