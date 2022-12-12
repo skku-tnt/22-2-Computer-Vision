@@ -1,15 +1,17 @@
 import os
+from tkinter import N
 import uuid
 import numpy as np
 import cv2
 import onnxruntime
 from tempfile import NamedTemporaryFile
 from loguru import logger
+import shutil
 
 from utils import preprocess, demo_postprocess, multiclass_nms
 from visualization import vis, vis_mosaic, vis_face
 from configs import MODEL_PATH, INPUT_SHAPE, COCO_CLASSES
-from live_face_recognition.face_recognition import face_recognition
+from live_face_recognition.face_recognition import face_recognition, face_preprocess
 
 def inference(cv2_image, ids: list=None):
 
@@ -34,9 +36,11 @@ def inference_first_frame(cv2_image, ids: list=None):
     return origin_img, faces
 
 def inference_mosaic(cv2_image, ids:list=None):
-
+    
     dets = get_dets(cv2_image)
+    logger.info('infer done')
     face_boxes = face_recognition(cv2_image)
+    logger.info('face recog done')
     score_thr = 0.5
     final_boxes, final_scores, final_cls_inds = dets[:, :4], dets[:, 4], dets[:, 5]
     origin_img = vis_mosaic(cv2_image, final_boxes, face_boxes ,final_scores, final_cls_inds,
@@ -84,7 +88,7 @@ def get_dets(cv2_image):
 
     return dets
 
-def process_video(video_name : NamedTemporaryFile.__name__):
+def process_video(video_name : NamedTemporaryFile.__name__ , not_maksed_face = None):
 
     try:
         cap= cv2.VideoCapture(video_name)
@@ -93,9 +97,9 @@ def process_video(video_name : NamedTemporaryFile.__name__):
     width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
     height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
     fps = cap.get(cv2.CAP_PROP_FPS)
-
+    face_preprocess()
+    logger.info('face preprocesss done')
     name = f"/storage/{str(uuid.uuid4())}_tmp.mp4"
-    
     vid_writer = cv2.VideoWriter(
             name, cv2.VideoWriter_fourcc(*"mp4v"), fps, (int(width), int(height))
         )

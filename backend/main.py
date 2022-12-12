@@ -1,22 +1,25 @@
 import os
 import uuid
 import cv2
+from requests import request
 import uvicorn
 from fastapi import File
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi import UploadFile
 import numpy as np
 from PIL import Image
 from loguru import logger
-
+from pydantic import BaseModel
 from tempfile import NamedTemporaryFile
+import shutil
+
 
 from inference import inference, process_video, get_label_names, save_video, inference_first_frame
 from utils import mkdir, decode, get_first_frame
 
 app = FastAPI()
-
-
+class Data(BaseModel):
+    user: str
 @app.get("/")
 def read_root():
     return {"message": "Welcome from the API"}
@@ -49,7 +52,6 @@ def inspect_video(file: UploadFile = File(...)):
         logger.info("video save Done")
         logger.info(name)
         image = get_first_frame(name)
-        #image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
         label_names = get_label_names(image)
         logger.info(label_names)
         first_frame_name = f"/storage/{str(uuid.uuid4())}.png"
@@ -102,8 +104,7 @@ def image_detection(file: UploadFile = File(...)):
 @app.post("/video_detection")
 def video_detection(file: UploadFile = File(...)):
     temp = NamedTemporaryFile(delete=False)
-    
-    
+
     try:
         try:
             contents = file.file.read()
@@ -113,8 +114,9 @@ def video_detection(file: UploadFile = File(...)):
             return {"message": "There was an error uploading the file"}
         finally:
             file.file.close()
-        
+        logger.info('read video done')
         name = process_video(temp.name)
+        logger.info('video process done')
     except Exception:
         return {"message": "There was an error processing the file"}
     finally:
@@ -122,5 +124,17 @@ def video_detection(file: UploadFile = File(...)):
         
     return {"name": name}
 
+@app.post("/make_face_folders")
+async def make_face_folders(data: Request):
+    data = await data.json()
+   
+    name = data['name']
+    if data is not None:
+        folder_name = f"/app/live_face_recognition/photos/{str(uuid.uuid4())}"
+        os.mkdir(folder_name)
+        file_name = folder_name + '/' + name
+        shutil.move(name, folder_name)
+
+    
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=8080)

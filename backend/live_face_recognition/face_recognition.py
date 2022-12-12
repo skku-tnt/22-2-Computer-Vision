@@ -7,6 +7,7 @@ import time
 import os
 import mmcv, cv2
 import numpy as np
+from loguru import logger
 from PIL import Image, ImageDraw
 
 # initializing MTCNN and InceptionResnetV1 
@@ -16,34 +17,35 @@ mtcnn = MTCNN(image_size=240, margin=0, keep_all=True, min_face_size=40) # keep_
 resnet = InceptionResnetV1(pretrained='vggface2').eval() 
 
 
-# Read data from folder
-
-dataset = datasets.ImageFolder('live_face_recognition/photos') # photos folder path 
-idx_to_class = {i:c for c,i in dataset.class_to_idx.items()} # accessing names of peoples from folder names
 
 def collate_fn(x):
     return x[0]
 
-loader = DataLoader(dataset, collate_fn=collate_fn)
+# Read data from folder
 
-name_list = [] # list of names corrospoing to cropped photos
-embedding_list = [] # list of embeding matrix after conversion from cropped faces to embedding matrix using resnet
+def face_preprocess():
+    
+    dataset = datasets.ImageFolder('/app/live_face_recognition/photos') # photos folder path 
+    idx_to_class = {i:c for c,i in dataset.class_to_idx.items()} # accessing names of peoples from folder names
 
-for img, idx in loader:
-    face, prob = mtcnn0(img, return_prob=True) 
-    if face is not None and prob>0.92:
-        emb = resnet(face.unsqueeze(0)) 
-        embedding_list.append(emb.detach()) 
-        name_list.append(idx_to_class[idx])        
 
-# save data
-data = [embedding_list, name_list] 
-torch.save(data, 'data.pt') # saving data.pt file
-load_data = torch.load('data.pt') 
-embedding_list = load_data[0] 
-name_list = load_data[1] 
+    loader = DataLoader(dataset, collate_fn=collate_fn)
 
-# read video
+    name_list = [] # list of names corrospoing to cropped photos
+    embedding_list = [] # list of embeding matrix after conversion from cropped faces to embedding matrix using resnet
+
+    for img, idx in loader:
+        face, prob = mtcnn0(img, return_prob=True) 
+        if face is not None and prob>0.92:
+            emb = resnet(face.unsqueeze(0)) 
+            embedding_list.append(emb.detach()) 
+            name_list.append(idx_to_class[idx])        
+
+    # save data
+    data = [embedding_list, name_list] 
+    torch.save(data, 'data.pt') # saving data.pt file
+
+
 
 def read_video(video_name):
     video = mmcv.VideoReader('20221116_231147.mp4')
@@ -52,6 +54,11 @@ def read_video(video_name):
     return frames
 
 def face_recognition(frame):  
+
+
+    load_data = torch.load('data.pt') 
+    embedding_list = load_data[0] 
+    name_list = load_data[1] 
     frames_tracked = []
     #print('\rTracking frame', end='')
     x = np.array(frame)
@@ -75,18 +82,11 @@ def face_recognition(frame):
                 name = name_list[min_dist_idx] # get name corrosponding to minimum dist
                 
                 box = boxes[i] 
-                
-                #original_frame = frame.copy() # storing copy of frame before drawing on it
-
                 frame = np.array(frame)
-                if min_dist<0.6: # 0.6 or 0.9
-                    #frame = cv2.putText(frame, name+' '+str(min_dist), (int(box[0]),int(box[1])), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,255,0),1, cv2.LINE_AA)
+                if min_dist<0.9: # 0.6 or 0.9
+                    
                     face_boxes.append(box)
-                #frame = Image.fromarray(frame, 'RGB')
-                #frames_tracked.append(frame.resize((640, 360), Image.BILINEAR))
-    
-
-    #print('\nDone')
+         
     return face_boxes
     
 '''

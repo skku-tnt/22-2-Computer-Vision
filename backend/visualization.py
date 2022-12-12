@@ -1,8 +1,10 @@
+from turtle import pos
 import cv2
 import numpy as np
 import uuid
 from loguru import logger
 
+temp_xy = []
 def im_trim(img, x_0, y_0, x_1, y_1):
     imgtrim = img[y_0: y_1, x_0: x_1]
     return imgtrim
@@ -62,23 +64,59 @@ def vis(img, boxes, scores, cls_ids, conf=0.5, class_names=None, ids=None):
 
 
 def vis_mosaic(img, boxes, face_boxes, scores, cls_ids, conf=0.5, class_names=None, ids=None):
+    pos_xy = []
+    logger.info(face_boxes)
+
     if face_boxes:
         face_boxes = face_boxes[0]
-    else:
-        return img
-    face_boxes = list(map(int, face_boxes))
-    face_trim_list = []  
-   
-    for i in range(len(face_boxes)):
-        imgtrim = im_trim(img, face_boxes[0], face_boxes[1],  face_boxes[2],  face_boxes[3])
-        face_trim_list.append(imgtrim)
-   
-    for i in range(len(boxes)):
-        img = mosaic_area(img,boxes[i], 0.1)
-        for j in range(len(face_trim_list)):
+        face_boxes = list(map(int, face_boxes))
+        logger.info(face_boxes)
+        x_mid, y_mid = (face_boxes[0] + face_boxes[2]) / 2, (face_boxes[1] + face_boxes[3]) / 2
+        pos_xy.append([x_mid, y_mid])
+    elif not face_boxes:
+        logger.info(face_boxes)
 
-            img[face_boxes[1]: face_boxes[3], face_boxes[0]: face_boxes[2]] = face_trim_list[j]
-        #print('mosaic done')
+    for i in range(len(boxes)):
+        boxes[i] = list(map(int, boxes[i]))
+        for j in range(len(boxes[i])):
+            if boxes[i][j] == 0:
+                boxes[i][j] = 1
+        
+    for i in range(len(boxes)):
+        if pos_xy:
+            logger.info('before x_mid')
+            x_mid = pos_xy[0][0]
+            y_mid = pos_xy[0][1]
+            logger.info('before append')
+            temp_xy.append((x_mid, y_mid, 20))
+            logger.info('after append')
+            logger.info(x_mid)
+            logger.info(boxes[i])
+            check_1 = False
+            for j in range(len(boxes[i])):
+                if boxes[i][j] == 1:
+                    logger.info('1 in box')
+                    check_1 = True
+            if check_1 == True:
+                continue
+                
+            if boxes[i][0] < x_mid < boxes[i][2] and boxes[i][1] < y_mid < boxes[i][3]:
+                continue
+            img = mosaic_area(img,  boxes[i], 0.1)
+        flag = False
+        '''
+        for j in range(len(temp_xy)):
+            x_mid, y_mid, count = temp_xy.pop(0)
+            count -= 1
+            if boxes[i][0] < x_mid < boxes[i][2] and boxes[i][1] < y_mid < boxes[i][3]: 
+                flag = True
+                continue
+            if count != 0:
+                temp_xy.append((x_mid, y_mid, count))
+            if flag == False:
+                img = mosaic_area(img,  boxes[i], 0.1)
+                break
+        '''
     return img
     
 
